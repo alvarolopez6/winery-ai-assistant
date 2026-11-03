@@ -30,7 +30,7 @@ This project explores a middle ground:
 - Proxies Telegram's webhook path to n8n, forwarding its secret header.
 - Resolves the tenant from the Instagram account ID.
 - Retrieves relevant chunks from a per-company Qdrant collection.
-- Generates a structured answer with Gemini.
+- Generates a structured answer with DeepSeek.
 - Tracks `ai` / `human` conversation state in PostgreSQL.
 - Sends a Telegram alert when a conversation needs a person.
 - Lets an operator switch a conversation with `/ai`, `/human`, `/stats` and
@@ -48,7 +48,7 @@ flowchart LR
     GW --> N8N[n8n]
     N8N --> PG[(PostgreSQL)]
     N8N --> Q[(Qdrant)]
-    N8N --> LLM[Gemini]
+    N8N --> LLM[DeepSeek]
     N8N --> TG[Telegram]
     TG --> OP[Human operator]
     TG -->|webhook| GW
@@ -64,7 +64,7 @@ sequenceDiagram
     participant N as n8n
     participant P as PostgreSQL
     participant Q as Qdrant
-    participant L as Gemini
+    participant L as DeepSeek
     participant T as Telegram
 
     C->>M: Instagram DM
@@ -94,7 +94,7 @@ sequenceDiagram
 |---|---|
 | Public edge | FastAPI gateway (Meta + Telegram webhooks) |
 | Orchestration | n8n 3.1 |
-| LLM | Google Gemini |
+| Chat model | DeepSeek (`deepseek-flash`) |
 | Embeddings | `gemini-embedding-001` |
 | Vector store | Qdrant 1.20 |
 | Database | PostgreSQL 16 |
@@ -109,7 +109,8 @@ sequenceDiagram
 
 - Docker Engine with Docker Compose v2
 - Python 3.11+
-- A Gemini API key for the local RAG demo
+- A Gemini API key for embeddings
+- A DeepSeek API key for chat generation and the local demo
 - Optional: a Meta developer app and a Telegram bot for the full workflow
 
 ### 1. Configure the environment
@@ -122,7 +123,7 @@ Edit `.env`:
 
 - Set `POSTGRES_PASSWORD`.
 - Generate `N8N_ENCRYPTION_KEY` with `openssl rand -hex 32`.
-- Set `GEMINI_API_KEY`.
+- Set `GEMINI_API_KEY` (embeddings) and `DEEPSEEK_API_KEY` (chat).
 
 ### 2. Start the infrastructure
 
@@ -139,7 +140,8 @@ n8n is available at <http://localhost:5678>. The gateway is available at
 
 ### 3. Run the local RAG demo
 
-This path does not need Instagram or n8n.
+This path does not need Instagram or n8n. It uses DeepSeek for the answer and
+Gemini for embeddings.
 
 ```bash
 python3 -m venv .venv
@@ -160,7 +162,7 @@ make ask Q="¿Qué vino recomiendas para una barbacoa?"
 ### 4. Import the n8n workflows (optional)
 
 1. Open n8n and create the credentials it asks for: PostgreSQL, Qdrant,
-   Google Gemini and Telegram.
+   DeepSeek, Google Gemini (embeddings) and Telegram.
 2. Import `workflows/main.json` and `workflows/telegram-admin.json`.
 3. Update the PostgreSQL and Qdrant credentials in each node.
 4. Set the Instagram webhook callback to your public gateway URL:
@@ -189,7 +191,8 @@ data. They will never contain real tokens.
 | `FORWARD_TIMEOUT` | no | Gateway upstream timeout in seconds |
 | `N8N_SECURE_COOKIE` | no | Set to `true` behind HTTPS |
 | `QDRANT_API_KEY` | no | Required only if Qdrant is exposed |
-| `GEMINI_API_KEY` | demo | Gemini API key for the local scripts |
+| `GEMINI_API_KEY` | yes | Gemini API key for embeddings |
+| `DEEPSEEK_API_KEY` | yes | DeepSeek API key for chat and the local demo |
 | `INSTAGRAM_APP_SECRET` | gateway | Meta app secret for HMAC verification |
 | `INSTAGRAM_VERIFY_TOKEN` | gateway | Meta webhook verification token |
 
@@ -198,21 +201,22 @@ data. They will never contain real tokens.
 Real output from the local demo:
 
 ```text
-$ python scripts/rag_query.py "¿Qué vino recomiendas para una barbacoa?"
+$ python scripts/rag_query.py "Hola, ¿qué vino recomendáis para una barbacoa?"
 
-Para una barbacoa recomendamos el Monastrell Reserva. Es un vino tinto
-100 % Monastrell con 12 meses de barrica y notas de frutos negros y especias.
-Marida muy bien con carnes rojas y asados. Su precio es de 22 €.
+Para una barbacoa recomendamos **Monastrell Reserva**: es un tinto 100 %
+Monastrell, con 12 meses en barrica y notas de frutos negros y especias.
+Marida bien con carnes rojas y asados. Precio: **22 €**.
 
 Fuentes:
-  [1] bodega.md (score=0.7302)
-  [2] bodega.md (score=0.6944)
-  [3] bodega.md (score=0.6539)
-  [4] bodega.md (score=0.6209)
+  [1] bodega.md (score=0.7537)
+  [2] bodega.md (score=0.7078)
+  [3] bodega.md (score=0.6734)
+  [4] bodega.md (score=0.6452)
 ```
 
-This is a real run against the fictional demo data. The retrieval path is the
-same one used by the n8n workflow.
+This is a real run against the fictional demo data. The retrieval path and the
+Gemini embeddings are the same ones used by the n8n workflow; the demo uses
+DeepSeek for the final answer.
 
 ## Project layout
 
@@ -305,4 +309,5 @@ MIT. See [`LICENSE`](LICENSE).
 - [n8n](https://n8n.io/) for the workflow runtime.
 - [Qdrant](https://qdrant.tech/) for the vector database.
 - [PostgreSQL](https://www.postgresql.org/) for the relational store.
-- Google Gemini for generation and embeddings.
+- DeepSeek for chat generation.
+- Google Gemini for embeddings.

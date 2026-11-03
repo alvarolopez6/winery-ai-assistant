@@ -61,8 +61,8 @@ operate it with real customers:
 - Establish a lawful basis and publish a privacy notice.
 - Define a retention period for conversations and execution data.
 - Provide a way to delete a customer's data.
-- Sign data-processing agreements with Meta, Google and Telegram where
-  required.
+- Sign data-processing agreements with Meta, Google, DeepSeek and Telegram
+  where required.
 - Avoid sending more personal data to the LLM than necessary.
 - Remember that Telegram alerts include the customer's username and the reason
   for escalation.

@@ -14,13 +14,14 @@ import json
 import os
 import sys
 
+import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
 
 DEFAULT_COLLECTION = "demo_wines"
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "models/gemini-embedding-001")
-CHAT_MODEL = os.getenv("GEMINI_CHAT_MODEL", "gemini-3.5-flash")
+CHAT_MODEL = os.getenv("DEEPSEEK_CHAT_MODEL", "deepseek-flash")
 
 SYSTEM_PROMPT = """Eres el asistente virtual de una bodega ficticia de demostración.
 Responde únicamente con la información del contexto proporcionado.
@@ -78,20 +79,36 @@ def retrieve(question: str, collection: str, top_k: int) -> list[dict]:
 
 
 def answer(question: str, chunks: list[dict]) -> str:
-    from google import genai
-
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("DEEPSEEK_API_KEY")
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not set")
+        raise RuntimeError("DEEPSEEK_API_KEY is not set")
 
-    client = genai.Client(api_key=api_key)
     context = "\n\n".join(
         f"[{index + 1}] {chunk['source']}\n{chunk['text']}"
         for index, chunk in enumerate(chunks)
     )
-    prompt = f"{SYSTEM_PROMPT}\n\nContexto:\n{context}\n\nPregunta: {question}"
-    response = client.models.generate_content(model=CHAT_MODEL, contents=prompt)
-    return response.text.strip()
+    response = httpx.post(
+        "https://api.deepseek.com/chat/completions",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": CHAT_MODEL,
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {
+                    "role": "user",
+                    "content": f"Contexto:\n{context}\n\nPregunta: {question}",
+                },
+            ],
+            "max_tokens": 500,
+            "temperature": 0.2,
+        },
+        timeout=60,
+    )
+    response.raise_for_status()
+    return response.json()["choices"][0]["message"]["content"].strip()
 
 
 def build_parser() -> argparse.ArgumentParser:

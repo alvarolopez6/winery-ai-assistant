@@ -160,7 +160,12 @@ def ingest(source: Path, collection: str, recreate: bool) -> int:
         PointStruct(
             id=point_id(source_name, index),
             vector=vector,
-            payload={"text": chunk, "source": source_name},
+            payload={
+                "text": chunk,
+                "content": chunk,
+                "source": source_name,
+                "metadata": {"source": source_name},
+            },
         )
         for index, ((source_name, chunk), vector) in enumerate(zip(documents, vectors))
     ]

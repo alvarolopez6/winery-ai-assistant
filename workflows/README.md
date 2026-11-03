@@ -18,7 +18,8 @@ IDs, webhook IDs or execution data.
 4. Create and select the required credentials:
    - PostgreSQL
    - Qdrant
-   - Google Gemini
+   - DeepSeek (chat model)
+   - Google Gemini (embeddings)
    - Telegram
 5. Activate the workflows only after the credentials and webhook are ready.
 

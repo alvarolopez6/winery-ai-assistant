@@ -6,7 +6,7 @@
 - Meta GET verification and `X-Hub-Signature-256` validation.
 - Tenant resolution by Instagram account.
 - Per-tenant Qdrant retrieval.
-- Structured Gemini answers.
+- Structured DeepSeek answers with Gemini embeddings.
 - Human handoff state machine.
 - Telegram operator commands.
 - Local RAG demo without Meta.

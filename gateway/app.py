@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
+import logging
 import os
 import uuid
 from collections.abc import Awaitable, Callable
@@ -23,6 +25,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
 DEFAULT_N8N_BASE_URL = "http://n8n:5678"
+logger = logging.getLogger("uvicorn.error")
 
 
 @dataclass(frozen=True)
@@ -47,6 +50,38 @@ class Settings:
 
 
 Forwarder = Callable[[str, bytes, dict[str, str]], Awaitable[httpx.Response]]
+
+
+def instagram_summary(body: bytes) -> str:
+    try:
+        data = json.loads(body)
+    except (ValueError, UnicodeDecodeError):
+        return "invalid-json"
+    entry = (data.get("entry") or [{}])[0] or {}
+    messaging = (entry.get("messaging") or [{}])[0] or {}
+    message = messaging.get("message") or {}
+    recipient = messaging.get("recipient") or {}
+    sender = messaging.get("sender") or {}
+    return (
+        f"object={data.get('object')} entry_id={entry.get('id')} "
+        f"recipient_id={recipient.get('id')} sender_id={sender.get('id')} "
+        f"text_length={len(message.get('text') or '')} "
+        f"echo={message.get('is_echo')}"
+    )
+
+
+def telegram_summary(body: bytes) -> str:
+    try:
+        data = json.loads(body)
+    except (ValueError, UnicodeDecodeError):
+        return "invalid-json"
+    message = data.get("message") or {}
+    chat = message.get("chat") or {}
+    sender = message.get("from") or {}
+    return (
+        f"update_id={data.get('update_id')} chat_id={chat.get('id')} "
+        f"from_id={sender.get('id')} text={message.get('text')!r}"
+    )
 
 
 def verify_signature(secret: str, body: bytes, signature: str | None) -> bool:
@@ -130,6 +165,8 @@ def create_app(settings: Settings | None = None, forwarder: Forwarder | None = N
         if not verify_signature(settings.app_secret, body, signature):
             return JSONResponse({"error": "invalid signature"}, status_code=403)
 
+        logger.info("instagram event: %s", instagram_summary(body))
+
         try:
             upstream = await forward("/webhook/instagram", body, dict(request.headers))
         except httpx.HTTPError as exc:
@@ -148,6 +185,8 @@ def create_app(settings: Settings | None = None, forwarder: Forwarder | None = N
             return JSONResponse({"error": "not found"}, status_code=404)
 
         body = await request.body()
+        logger.info("telegram event: %s", telegram_summary(body))
+
         try:
             upstream = await forward(
                 f"/webhook/{webhook_id}/webhook",

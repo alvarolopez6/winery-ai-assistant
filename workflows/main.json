@@ -1,12 +1,16 @@
 {
+  "updatedAt": "2026-11-03T15:36:29.924Z",
+  "createdAt": "2026-11-03T12:09:29.428Z",
   "name": "Winery AI Assistant — Instagram",
+  "description": null,
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
         "hasOutputParser": true,
-        "needsFallback": false,
         "options": {
           "systemMessage": "Eres el asistente virtual de una bodega.\n\nTienes una herramienta de búsqueda documental.\n\nPara cualquier pregunta sobre la bodega debes usar la herramienta antes de responder.\n\nNo respondas usando conocimientos generales.\n\nSi la herramienta no devuelve información, indica que no tienes ese dato.\n\nSiempre responde usando el formato definido por el Output Parser.\n\nneeds_human=true cuando:\n\n- el usuario pide hablar con una persona;\n- no encuentras la información en la base documental;\n- existe una queja;\n- existe una reclamación;\n- existe un problema con un pedido;\n- es alguna propuesta personalizada;\n- no estás seguro de la respuesta.\n\nEn cualquier otro caso:\n\nneeds_human=false."
         }
@@ -22,25 +26,6 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.5-flash",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1.2,
-      "position": [
-        16,
-        256
-      ],
-      "id": "90bb8708-1240-471b-929d-7b7896ce69b6",
-      "name": "Google Gemini Chat Model",
-      "credentials": {
-        "googlePalmApi": {
-          "name": "Google Gemini(PaLM) Api account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "mode": "retrieve-as-tool",
         "toolDescription": "Work with your data in Qdrant collection",
         "qdrantCollection": {
@@ -48,7 +33,6 @@
           "value": "={{ $('QueryID').item.json.qdrant_collection }}",
           "mode": "id"
         },
-        "topK": 4,
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
@@ -70,8 +54,8 @@
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
       "typeVersion": 1,
       "position": [
-        448,
-        576
+        320,
+        560
       ],
       "id": "04c89453-13a6-4276-9123-35c0be726602",
       "name": "Embeddings Google Gemini",
@@ -89,7 +73,7 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.4,
       "position": [
-        400,
+        352,
         160
       ],
       "id": "7d054228-74cd-40ef-be9d-a38a57aa9273",
@@ -104,7 +88,7 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.2,
       "position": [
-        -624,
+        -704,
         -80
       ],
       "id": "1e9ad792-eda5-405e-9637-6519e4c21d32",
@@ -118,8 +102,8 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        736,
-        352
+        720,
+        272
       ],
       "id": "9ffd0dac-f804-4921-8ef0-f01583c24d56",
       "name": "Structured Output Parser"
@@ -304,8 +288,8 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1248,
-        256
+        1328,
+        144
       ],
       "id": "6aa5b6fb-9b41-4ac0-b4c0-27cea71e6b19",
       "name": "TelegramIA",
@@ -365,7 +349,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n{\n  recipient: {\n    id: $('Webhook').item.json.body.entry[0].messaging[0].sender.id\n  },\n  message: {\n    text: $('AI Agent').item.json.output.reply\n  }\n}\n}}",
+        "jsonBody": "={{\n{\n  recipient: {\n    id: $('Webhook').item.json.body.entry[0].messaging[0].sender.id\n  },\n  message: {\n    text: $json.output.reply\n  }\n}\n  }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -428,25 +412,33 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -500,
+        -576,
         -80
       ],
       "id": "b7f0c2a4-3d1e-4f5a-9c6b-2e8d7a1f0c3e",
       "name": "Filter Event"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        96,
+        160
+      ],
+      "id": "73ebd44c-7f95-421a-8aed-dd500e38b803",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "name": "DeepSeek account"
+        }
+      }
     }
   ],
   "connections": {
-    "Google Gemini Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Qdrant Vector Store": {
       "ai_tool": [
         [
@@ -636,13 +628,27 @@
           }
         ]
       ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
   "nodeGroups": [],
-  "tags": []
+  "tags": [],
+  "versionMetadata": {
+    "name": "Version 5bf7cd59",
+    "description": ""
+  }
 }

@@ -81,3 +81,17 @@ network.
 **Consequences:** n8n stays private, signature verification is testable in
 Python, and Cloudflare or a reverse proxy only needs to expose one small
 service. The cost is one more container and one more deployment artifact.
+
+## ADR-009: DeepSeek for chat, Gemini for embeddings
+
+**Context:** the Gemini free tier exhausted its daily generate-content quota
+during testing. DeepSeek supports tool calling and JSON output, which the AI
+Agent and the structured output parser need.
+
+**Decision:** use DeepSeek (`deepseek-flash`) for chat generation and keep
+Gemini (`gemini-embedding-001`) for embeddings. The local Python demo uses the same split: DeepSeek for chat and Gemini for
+embeddings.
+
+**Consequences:** chat and embeddings have independent quotas and providers.
+The workflow requires both API keys. The design still allows swapping either
+provider without touching the database or the Qdrant collection.

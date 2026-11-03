@@ -7,7 +7,8 @@ This guide covers the full deployment. For the local RAG demo, see the
 
 - Docker Engine with Compose v2.
 - Python 3.11+ for the local demo scripts.
-- A Gemini API key.
+- A Gemini API key for embeddings and the local demo.
+- A DeepSeek API key for the n8n chat model.
 - Optional: a Meta developer app with an Instagram business account.
 - Optional: a Telegram bot.
 - Optional: Cloudflare Tunnel for a public demo URL.
@@ -22,7 +23,8 @@ Edit `.env`:
 
 - `POSTGRES_PASSWORD`: use a strong password.
 - `N8N_ENCRYPTION_KEY`: generate with `openssl rand -hex 32`.
-- `GEMINI_API_KEY`: required for the local demo.
+- `GEMINI_API_KEY`: required for embeddings and the local demo.
+- `DEEPSEEK_API_KEY`: required for the n8n chat model.
 - `N8N_HOST`, `N8N_PROTOCOL`: set these for the n8n editor when you deploy
   behind HTTPS.
 - `PUBLIC_BASE_URL`: public URL of the gateway. Locally it is
@@ -55,7 +57,8 @@ account on first access.
 3. Create the credentials requested by the nodes:
    - PostgreSQL: host `postgres`, port `5432`, database and user from `.env`.
    - Qdrant: URL `http://qdrant:6333`.
-   - Google Gemini: API key.
+   - DeepSeek: API key for the chat model.
+   - Google Gemini: API key for embeddings.
    - Telegram: bot token.
 4. Re-select the credentials in each node. The exports intentionally do not
    include credential IDs.
@@ -92,7 +95,8 @@ python scripts/rag_ingest.py --source examples/demo --collection demo_wines --re
 ```
 
 The script infers the vector size from the embedding model. `gemini-embedding-001`
-typically returns 3072 dimensions.
+typically returns 3072 dimensions. The query CLI uses DeepSeek for the answer
+and Gemini for embeddings.
 
 For a real tenant, replace `--source` with the tenant's document directory and
 `--collection` with the value stored in `companies.qdrant_collection`.

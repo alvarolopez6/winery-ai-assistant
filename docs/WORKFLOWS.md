@@ -16,7 +16,7 @@ verified the request.
 | `AiHumanQuery` | Reads `ai` / `human` state |
 | `If1` | Branches between bot and human mode |
 | `AI Agent` | Retrieves context and generates a structured answer |
-| `Google Gemini Chat Model` | Answer model |
+| `DeepSeek Chat Model` | Answer model |
 | `Qdrant Vector Store` | Tenant-scoped retrieval tool |
 | `Embeddings Google Gemini` | Embeddings for retrieval |
 | `Simple Memory` | Per-conversation short-term memory |

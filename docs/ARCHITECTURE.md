@@ -24,7 +24,8 @@
 | n8n | Orchestration, retries and credentials |
 | PostgreSQL | Tenants, conversation state and encrypted provider tokens |
 | Qdrant | Per-tenant document embeddings |
-| Gemini | Embeddings and answer generation |
+| DeepSeek | Answer generation |
+| Gemini | Embeddings |
 | Telegram | Operator notifications and commands |
 | Python demo | Local ingestion and query path without Meta |
 
@@ -147,7 +148,7 @@ is acceptable.
 |---|---|---|
 | Meta sends an echo or a non-text event | Filtered by the event guard | Add an automated test |
 | Meta retries the same webhook | Conversation row is idempotent; reply may duplicate | Deduplicate by message ID |
-| Gemini is unavailable | Node error; message is lost | Add retries and an error workflow |
+| DeepSeek or Gemini embeddings are unavailable | Node error; message is lost | Add retries and an error workflow |
 | Instagram token expires | API call fails | Add a refresh job and expiry alert |
 | Qdrant collection is missing | Retrieval fails | Add an ingestion health check |
 | n8n restarts | Conversation state survives; in-memory chat buffer does not | Persist chat memory in PostgreSQL |

@@ -1,5 +1,10 @@
 {
+  "updatedAt": "2026-11-03T14:38:42.508Z",
+  "createdAt": "2026-11-03T12:09:37.300Z",
   "name": "Winery AI Assistant — Telegram Admin",
+  "description": null,
+  "active": false,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -742,11 +747,14 @@
       ]
     }
   },
-  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
   "nodeGroups": [],
-  "tags": []
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
 }
