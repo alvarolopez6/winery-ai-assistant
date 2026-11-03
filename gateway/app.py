@@ -1,11 +1,12 @@
-"""Public webhook gateway for Instagram/Meta.
+"""Public webhook gateway for Meta and Telegram.
 
-Meta needs two things from the public endpoint:
+Meta needs:
 
 1. A GET challenge for webhook verification.
 2. A POST endpoint that verifies X-Hub-Signature-256 before forwarding.
 
-n8n stays private behind this gateway.
+n8n's Telegram Trigger also needs a public webhook URL. The gateway proxies
+those UUID-based webhook paths to n8n without exposing the n8n editor.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
+import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
@@ -20,14 +22,14 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, PlainTextResponse, Response
 
-DEFAULT_N8N_URL = "http://n8n:5678/webhook/instagram"
+DEFAULT_N8N_BASE_URL = "http://n8n:5678"
 
 
 @dataclass(frozen=True)
 class Settings:
     app_secret: str
     verify_token: str
-    n8n_url: str = DEFAULT_N8N_URL
+    n8n_base_url: str = DEFAULT_N8N_BASE_URL
     timeout: float = 30.0
 
     @classmethod
@@ -35,7 +37,7 @@ class Settings:
         return cls(
             app_secret=os.getenv("INSTAGRAM_APP_SECRET", ""),
             verify_token=os.getenv("INSTAGRAM_VERIFY_TOKEN", ""),
-            n8n_url=os.getenv("N8N_INTERNAL_WEBHOOK_URL", DEFAULT_N8N_URL),
+            n8n_base_url=os.getenv("N8N_BASE_URL", DEFAULT_N8N_BASE_URL).rstrip("/"),
             timeout=float(os.getenv("FORWARD_TIMEOUT", "30")),
         )
 
@@ -44,7 +46,7 @@ class Settings:
         return bool(self.app_secret and self.verify_token)
 
 
-Forwarder = Callable[[bytes, dict[str, str]], Awaitable[httpx.Response]]
+Forwarder = Callable[[str, bytes, dict[str, str]], Awaitable[httpx.Response]]
 
 
 def verify_signature(secret: str, body: bytes, signature: str | None) -> bool:
@@ -55,30 +57,49 @@ def verify_signature(secret: str, body: bytes, signature: str | None) -> bool:
     return hmac.compare_digest(signature, f"sha256={expected}")
 
 
+def forwarded_headers(headers: dict[str, str]) -> dict[str, str]:
+    forwarded = {"content-type": headers.get("content-type", "application/json")}
+    telegram_secret = headers.get("x-telegram-bot-api-secret-token")
+    if telegram_secret:
+        forwarded["x-telegram-bot-api-secret-token"] = telegram_secret
+    return forwarded
+
+
 async def forward_to_n8n(
-    settings: Settings, body: bytes, headers: dict[str, str]
+    settings: Settings, path: str, body: bytes, headers: dict[str, str]
 ) -> httpx.Response:
     async with httpx.AsyncClient(timeout=settings.timeout) as client:
         return await client.post(
-            settings.n8n_url,
+            f"{settings.n8n_base_url}{path}",
             content=body,
-            headers={"content-type": headers.get("content-type", "application/json")},
+            headers=forwarded_headers(headers),
         )
 
 
 def create_app(settings: Settings | None = None, forwarder: Forwarder | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     app = FastAPI(
-        title="Instagram Webhook Gateway",
+        title="Webhook Gateway",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
     )
 
-    async def default_forward(body: bytes, headers: dict[str, str]) -> httpx.Response:
-        return await forward_to_n8n(settings, body, headers)
+    async def default_forward(
+        path: str, body: bytes, headers: dict[str, str]
+    ) -> httpx.Response:
+        return await forward_to_n8n(settings, path, body, headers)
 
     forward = forwarder or default_forward
+
+    def proxy_response(upstream: httpx.Response) -> Response:
+        return Response(
+            content=upstream.content,
+            status_code=upstream.status_code,
+            headers={
+                "content-type": upstream.headers.get("content-type", "application/json")
+            },
+        )
 
     @app.get("/healthz")
     async def healthz() -> Response:
@@ -110,20 +131,36 @@ def create_app(settings: Settings | None = None, forwarder: Forwarder | None = N
             return JSONResponse({"error": "invalid signature"}, status_code=403)
 
         try:
-            upstream = await forward(body, dict(request.headers))
+            upstream = await forward("/webhook/instagram", body, dict(request.headers))
         except httpx.HTTPError as exc:
             return JSONResponse(
                 {"error": "upstream unavailable", "detail": str(exc)},
                 status_code=502,
             )
 
-        return Response(
-            content=upstream.content,
-            status_code=upstream.status_code,
-            headers={
-                "content-type": upstream.headers.get("content-type", "application/json")
-            },
-        )
+        return proxy_response(upstream)
+
+    @app.post("/webhook/{webhook_id}/webhook")
+    async def receive_telegram(webhook_id: str, request: Request) -> Response:
+        try:
+            uuid.UUID(webhook_id)
+        except ValueError:
+            return JSONResponse({"error": "not found"}, status_code=404)
+
+        body = await request.body()
+        try:
+            upstream = await forward(
+                f"/webhook/{webhook_id}/webhook",
+                body,
+                dict(request.headers),
+            )
+        except httpx.HTTPError as exc:
+            return JSONResponse(
+                {"error": "upstream unavailable", "detail": str(exc)},
+                status_code=502,
+            )
+
+        return proxy_response(upstream)
 
     return app
 

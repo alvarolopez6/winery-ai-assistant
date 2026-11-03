@@ -26,6 +26,8 @@ The public entry point is the FastAPI gateway in `gateway/`. It implements:
 4. Constant-time comparison against `X-Hub-Signature-256`.
 5. Rejection of requests with a missing or invalid signature.
 6. Forwarding of valid requests to n8n over the private Docker network.
+7. Proxying Telegram's UUID webhook path and its
+   `X-Telegram-Bot-Api-Secret-Token` header to n8n.
 
 The n8n workflow still validates the event shape and ignores echoes and
 non-text events, but it assumes the request already passed the gateway. **Do not
@@ -34,7 +36,7 @@ verification.
 
 Additional required controls:
 
-- Keep the gateway as the only public endpoint.
+- Keep the gateway as the only public endpoint for both Meta and Telegram.
 - Put the gateway behind HTTPS (Cloudflare Tunnel or a reverse proxy).
 - Rate-limit the gateway at the edge.
 - Add message-ID deduplication in n8n to avoid duplicate replies on retries.

@@ -27,6 +27,7 @@ This project explores a middle ground:
 
 - Receives Instagram DMs through the Meta Graph API webhook.
 - Verifies Meta's GET challenge and `X-Hub-Signature-256` in a small gateway before forwarding to n8n.
+- Proxies Telegram's webhook path to n8n, forwarding its secret header.
 - Resolves the tenant from the Instagram account ID.
 - Retrieves relevant chunks from a per-company Qdrant collection.
 - Generates a structured answer with Gemini.
@@ -50,6 +51,7 @@ flowchart LR
     N8N --> LLM[Gemini]
     N8N --> TG[Telegram]
     TG --> OP[Human operator]
+    TG -->|webhook| GW
 ```
 
 Request flow:
@@ -90,7 +92,7 @@ sequenceDiagram
 
 | Layer | Technology |
 |---|---|
-| Public edge | FastAPI gateway + HMAC verification |
+| Public edge | FastAPI gateway (Meta + Telegram webhooks) |
 | Orchestration | n8n 3.1 |
 | LLM | Google Gemini |
 | Embeddings | `gemini-embedding-001` |
@@ -262,8 +264,8 @@ HMAC rejection path.
 
 - No real credentials, tokens or customer conversations are committed.
 - `.env` is ignored; `.env.example` contains placeholders only.
-- The gateway is the only public entry point; it verifies the verify token and
-  the HMAC signature before forwarding to n8n.
+- The gateway is the only public entry point; it verifies the Meta token and
+  HMAC signature, and proxies Telegram webhook paths with their secret header.
 - Qdrant and PostgreSQL are not published to the host by default.
 - n8n binds to `127.0.0.1`; do not expose the editor.
 - Execution data is pruned and not saved on success, reducing the chance of
@@ -282,6 +284,7 @@ and data-processing agreements with Meta, Google and Telegram. See
 | Instagram DM webhook → gateway → n8n | Implemented |
 | Meta GET verification | Implemented in gateway |
 | `X-Hub-Signature-256` verification | Implemented in gateway |
+| Telegram webhook proxy | Implemented in gateway |
 | Tenant resolution by Instagram account | Implemented |
 | Per-tenant RAG with Qdrant | Implemented |
 | Human handoff state machine | Implemented |

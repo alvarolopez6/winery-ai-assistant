@@ -115,6 +115,10 @@ docker compose up -d n8n
 Quick tunnels are for demos only. For production, use a named Cloudflare Tunnel
 or a reverse proxy with a stable domain. Never point the tunnel at n8n itself.
 
+The Telegram Trigger uses the same public gateway URL. n8n registers a
+`/webhook/<uuid>/webhook` path; the gateway proxies it to n8n and forwards the
+Telegram secret header. Do not expose n8n directly.
+
 ## 8. Configure Meta
 
 1. Create a Meta app with the Instagram Graph API product.

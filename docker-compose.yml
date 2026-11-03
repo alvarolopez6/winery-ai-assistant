@@ -10,6 +10,7 @@ services:
       - N8N_HOST=${N8N_HOST:-localhost}
       - N8N_PORT=5678
       - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - N8N_EDITOR_BASE_URL=${N8N_EDITOR_BASE_URL:-http://localhost:5678}
       - N8N_WEBHOOK_URL=${PUBLIC_BASE_URL:-http://localhost:8080/}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
       - N8N_SECURE_COOKIE=${N8N_SECURE_COOKIE:-false}
@@ -51,7 +52,7 @@ services:
     environment:
       - INSTAGRAM_APP_SECRET=${INSTAGRAM_APP_SECRET:?set INSTAGRAM_APP_SECRET in .env}
       - INSTAGRAM_VERIFY_TOKEN=${INSTAGRAM_VERIFY_TOKEN:?set INSTAGRAM_VERIFY_TOKEN in .env}
-      - N8N_INTERNAL_WEBHOOK_URL=http://n8n:5678/webhook/instagram
+      - N8N_BASE_URL=http://n8n:5678
       - FORWARD_TIMEOUT=${FORWARD_TIMEOUT:-30}
     depends_on:
       n8n:

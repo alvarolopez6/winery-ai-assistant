@@ -74,8 +74,9 @@ storing the verify token in workflow JSON, and n8n would have to be the public
 service.
 
 **Decision:** put a small FastAPI gateway in front of n8n. The gateway handles
-GET verification and `X-Hub-Signature-256`, then forwards valid POSTs over the
-private Docker network.
+Meta GET verification and `X-Hub-Signature-256`, proxies Telegram webhook paths
+with their secret header, then forwards valid POSTs over the private Docker
+network.
 
 **Consequences:** n8n stays private, signature verification is testable in
 Python, and Cloudflare or a reverse proxy only needs to expose one small

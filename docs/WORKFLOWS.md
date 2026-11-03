@@ -41,7 +41,9 @@ reactions or attachments.
 ## Telegram admin workflow
 
 `workflows/telegram-admin.json` is restricted to the chat ID stored in
-`companies.telegram_chat_id`.
+`companies.telegram_chat_id`. Its Telegram Trigger is reached through the
+gateway, which proxies the UUID webhook path and forwards the Telegram secret
+header.
 
 | Command | Effect |
 |---|---|
