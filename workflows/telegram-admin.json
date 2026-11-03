@@ -1,0 +1,752 @@
+{
+  "name": "Winery AI Assistant — Telegram Admin",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -384,
+        0
+      ],
+      "id": "9a53de14-d5b0-48d0-a27d-5ffd021f7f20",
+      "name": "Telegram Trigger",
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text.split(' ')[0] }}",
+                    "rightValue": "/ai",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "f0a32459-1401-45e2-ae71-8a668a4a151a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "/ai"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "cd0333cb-9a20-4caf-912b-f7b01ba38375",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text.split(' ')[0] }}",
+                    "rightValue": "/human",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "/human"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "7b45c14c-4a84-4b4f-9134-355672c22c24",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text.split(' ')[0] }}",
+                    "rightValue": "/stats",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "/stats"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "2ac1c64b-b982-402a-a165-2d841005d6cd",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text.split(' ')[0] }}",
+                    "rightValue": "/help",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "/help"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        -32
+      ],
+      "id": "a8bac0c9-c93b-47b6-899a-c3d32701f7f4",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "22176d0f-69fb-4aac-bf6c-be22f94d9eff",
+              "leftValue": "={{ $json.instagram_user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1264,
+        -256
+      ],
+      "id": "d1bebc2c-f46c-4a2d-b40f-92800a7b62c0",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "80bce809-2e9f-4183-a021-98f5df40361c",
+              "name": "instagram_username",
+              "value": "={{ $('Telegram Trigger').item.json.message.text.split(' ')[1] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        864,
+        -256
+      ],
+      "id": "da264aec-1fc1-4a1f-ad01-4f0050c523e9",
+      "name": "InstagramUsernameSet"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "60aacb5e-f9c0-49e7-9258-f61a0ffc819b",
+              "name": "response",
+              "value": "={{ \"❌ No encuentro ninguna conversación con @\" + $('InstagramUsernameSet').item.json.instagram_username}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1664,
+        -224
+      ],
+      "id": "b3c64259-12be-4689-8146-4ee3b0d6799d",
+      "name": "MensajeFalseSet"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8dc75564-ec03-4476-8276-cb0717d9e837",
+              "name": "response",
+              "value": "={{ \"✅ Conversación de @\" + $('InstagramUsernameSet').item.json.instagram_username + \" tomada por \" + $('MergeHumanAI').item.json.attends_name}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1776,
+        -368
+      ],
+      "id": "13e08d24-e27e-4d2f-8c59-8f380fbd884d",
+      "name": "MensajeTrueSet"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2064,
+        -272
+      ],
+      "id": "5171f00c-1329-4e36-a8d1-2b5b83e091e8",
+      "name": "MergeAI"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('MergeAI').item.json.response }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2288,
+        -272
+      ],
+      "id": "d32d3baf-ed74-4580-ba40-55d06b104884",
+      "name": "Send a text message",
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT instagram_user_id,\n       instagram_username,\n       company_id\nFROM conversations\nWHERE company_id = $1\n  AND instagram_username = $2;",
+        "options": {
+          "queryReplacement": "={{ $('SelectCompany').item.json.id }}\n{{ $('InstagramUsernameSet').item.json.instagram_username }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1072,
+        -256
+      ],
+      "id": "fecaedf0-77b3-4bf5-8265-10d1f1052262",
+      "name": "SelectFromConversations",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE conversations\nSET status=$3,\n    updated_at=NOW()\nWHERE company_id=$1\nAND instagram_user_id=$2;",
+        "options": {
+          "queryReplacement": "={{ $json.company_id }}\n{{ $json.instagram_user_id }}\n{{ $(\"MergeHumanAI\").item.json.attends }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1536,
+        -368
+      ],
+      "id": "aab43416-3575-4d8f-b10e-89eb6f1c8686",
+      "name": "UpdateConversations",
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0960253c-bc74-4f02-a208-ff88276d5f3a",
+              "name": "attends",
+              "value": "ai",
+              "type": "string"
+            },
+            {
+              "id": "27df978d-0e6f-4bef-a373-d4e2f9f70b4c",
+              "name": "attends_name",
+              "value": "IA",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        -272
+      ],
+      "id": "4d073989-24c6-4489-a5bf-ea99cf0aff73",
+      "name": "AI"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0960253c-bc74-4f02-a208-ff88276d5f3a",
+              "name": "attends",
+              "value": "human",
+              "type": "string"
+            },
+            {
+              "id": "fb8ea5ab-5fe6-4095-9e33-4588ae1e8077",
+              "name": "attends_name",
+              "value": "humano",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        -112
+      ],
+      "id": "4036e6b3-eaf3-4ca4-bbfc-d448c7d6cd0b",
+      "name": "Human"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        688,
+        -256
+      ],
+      "id": "163614d9-38fb-45b9-9f56-c276a52c9b86",
+      "name": "MergeHumanAI"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Comandos disponibles:\n\n/ai @usuario\nDevuelve una conversación al bot.\n\n/human @usuario\nPasa una conversación a modo humano.\n\n/stats\nMuestra estadísticas básicas.\n\n/help\nMuestra la lista de comandos.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        192
+      ],
+      "id": "e74cc038-0748-4a5b-a25f-d5c75edef418",
+      "name": "SendHelpMessage",
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    COUNT(*) AS total,\n    COUNT(*) FILTER (WHERE status = 'ai') AS ai,\n    COUNT(*) FILTER (WHERE status = 'human') AS human\nFROM conversations\nWHERE company_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('SelectCompany').item.json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        688,
+        16
+      ],
+      "id": "6dfc5cab-d4c5-495b-b878-dc7122a32975",
+      "name": "SelectStats",
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('StatsResponseSet').item.json.response }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        16
+      ],
+      "id": "0b7cdcb5-709a-4866-b702-d418c6624cbb",
+      "name": "SendStatsMessage",
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "baa4c487-4206-4e56-82bc-c3e1f4279b70",
+              "name": "response",
+              "value": "=📊 Estadísticas\n\nTotal conversaciones: {{ $('SelectStats').item.json.total }}\n\n🤖 En modo IA: {{ $('SelectStats').item.json.ai }}\n👤 En modo humano: {{ $('SelectStats').item.json.human}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        912,
+        16
+      ],
+      "id": "b485616b-ded1-47d8-8436-65b2a8b11112",
+      "name": "StatsResponseSet"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id,\n       name,\n       telegram_chat_id\nFROM companies\nWHERE telegram_chat_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -192,
+        0
+      ],
+      "id": "209f892e-e8cb-4118-9dfc-7c892224eb65",
+      "name": "SelectCompany",
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "40d5b4f5-45a7-4e0e-a4f5-4612d110382a",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -16,
+        16
+      ],
+      "id": "d221feff-84b7-442c-93fa-e8ba4ecd1b58",
+      "name": "IfAllowed"
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "SelectCompany",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "AI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Human",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SelectStats",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SendHelpMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "InstagramUsernameSet": {
+      "main": [
+        [
+          {
+            "node": "SelectFromConversations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "UpdateConversations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MensajeFalseSet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MensajeTrueSet": {
+      "main": [
+        [
+          {
+            "node": "MergeAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MensajeFalseSet": {
+      "main": [
+        [
+          {
+            "node": "MergeAI",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "MergeAI": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SelectFromConversations": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UpdateConversations": {
+      "main": [
+        [
+          {
+            "node": "MensajeTrueSet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Human": {
+      "main": [
+        [
+          {
+            "node": "MergeHumanAI",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AI": {
+      "main": [
+        [
+          {
+            "node": "MergeHumanAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MergeHumanAI": {
+      "main": [
+        [
+          {
+            "node": "InstagramUsernameSet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SelectStats": {
+      "main": [
+        [
+          {
+            "node": "StatsResponseSet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "StatsResponseSet": {
+      "main": [
+        [
+          {
+            "node": "SendStatsMessage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SelectCompany": {
+      "main": [
+        [
+          {
+            "node": "IfAllowed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IfAllowed": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}

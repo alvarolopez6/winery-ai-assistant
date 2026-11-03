@@ -1,0 +1,648 @@
+{
+  "name": "Winery AI Assistant — Instagram",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
+        "hasOutputParser": true,
+        "needsFallback": false,
+        "options": {
+          "systemMessage": "Eres el asistente virtual de una bodega.\n\nTienes una herramienta de búsqueda documental.\n\nPara cualquier pregunta sobre la bodega debes usar la herramienta antes de responder.\n\nNo respondas usando conocimientos generales.\n\nSi la herramienta no devuelve información, indica que no tienes ese dato.\n\nSiempre responde usando el formato definido por el Output Parser.\n\nneeds_human=true cuando:\n\n- el usuario pide hablar con una persona;\n- no encuentras la información en la base documental;\n- existe una queja;\n- existe una reclamación;\n- existe un problema con un pedido;\n- es alguna propuesta personalizada;\n- no estás seguro de la respuesta.\n\nEn cualquier otro caso:\n\nneeds_human=false."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        -48
+      ],
+      "id": "b7340575-44c4-45a1-8679-f91348a60c56",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        16,
+        256
+      ],
+      "id": "90bb8708-1240-471b-929d-7b7896ce69b6",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Work with your data in Qdrant collection",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "={{ $('QueryID').item.json.qdrant_collection }}",
+          "mode": "id"
+        },
+        "topK": 4,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        368
+      ],
+      "id": "730d240c-aed9-452d-98bf-74f0417e0cf4",
+      "name": "Qdrant Vector Store",
+      "credentials": {
+        "qdrantApi": {
+          "name": "Qdrant account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        448,
+        576
+      ],
+      "id": "04c89453-13a6-4276-9123-35c0be726602",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}_{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        160
+      ],
+      "id": "7d054228-74cd-40ef-be9d-a38a57aa9273",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "instagram",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -624,
+        -80
+      ],
+      "id": "1e9ad792-eda5-405e-9637-6519e4c21d32",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"reply\": {\n      \"type\": \"string\"\n    },\n    \"needs_human\": {\n      \"type\": \"boolean\"\n    },\n    \"reason\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"reply\",\n    \"needs_human\",\n    \"reason\"\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        736,
+        352
+      ],
+      "id": "9ffd0dac-f804-4921-8ef0-f01583c24d56",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7f06cecb-bd19-4a00-bc7c-2be7eb140e48",
+              "leftValue": "={{ $json.output.needs_human }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        -48
+      ],
+      "id": "d815e839-8cb0-4816-b152-d5ad1f1ffd56",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, instagram_id, qdrant_collection, telegram_chat_id\nFROM companies\nWHERE instagram_id = $1",
+        "options": {
+          "queryReplacement": "={{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -384,
+        -368
+      ],
+      "id": "06ee2b65-8a9d-46b2-a4b7-c83abae465b5",
+      "name": "QueryID",
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT encrypted_value\nFROM credentials\nWHERE company_id = $1\nAND type = $2;",
+        "options": {
+          "queryReplacement": "={{ $('QueryID').item.json.id }}\n{{ 'instagram' }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -384,
+        -224
+      ],
+      "id": "4c041415-01b2-4d8e-84f1-ddefc0403fbc",
+      "name": "QueryEncrypted",
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "450a37ec-dfda-4fc0-a60f-5cd518453e22",
+              "leftValue": "={{ $('AiHumanQuery').item.json.status }}",
+              "rightValue": "ai",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        -48
+      ],
+      "id": "a1b99f0a-d603-48c2-b21b-a256759c3cc1",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT status\nFROM conversations\nWHERE company_id = $1\nAND instagram_user_id = $2;",
+        "options": {
+          "queryReplacement": "={{ $('QueryID').item.json.id }}\n{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -384,
+        208
+      ],
+      "id": "854425c4-366b-4ce3-9caf-bfeaaeff8de7",
+      "name": "AiHumanQuery",
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.instagram.com/{{$('Webhook').item.json.body.entry[0].messaging[0].sender.id}}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "name,username"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('QueryEncrypted').item.json.encrypted_value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -384,
+        -80
+      ],
+      "id": "8385a1f3-c4f5-419f-8295-371a7e7b68d9",
+      "name": "HTTPInstagramInfo"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('QueryID').item.json.telegram_chat_id }}",
+        "text": "=🍷 Consulta pendiente\n\n👤 Cliente: {{ $('HTTPInstagramInfo').item.json.name }}\n📱 Usuario: @{{ $('HTTPInstagramInfo').item.json.username }}\n\n💬 Motivo:\n{{ (() => { try { return $('AI Agent').first()?.json?.output?.reason || 'Conversación continuada por un humano'; } catch (e) { return 'Conversación continuada por un humano'; } })() }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        256
+      ],
+      "id": "6aa5b6fb-9b41-4ac0-b4c0-27cea71e6b19",
+      "name": "TelegramIA",
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.instagram.com/v22.0/{{ $('QueryID').item.json.instagram_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('QueryEncrypted').item.json.encrypted_value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  recipient: {\n    id: $('Webhook').item.json.body.entry[0].messaging[0].sender.id\n  },\n  message: {\n    text: \"Voy a pasarte con una persona del equipo para que pueda ayudarte mejor. Te responderemos lo antes posible.\"\n  }\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1072,
+        80
+      ],
+      "id": "28b97cb5-bcc2-4699-b33c-34d31a381253",
+      "name": "HTTPMensajeEspera"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.instagram.com/v22.0/{{ $('QueryID').item.json.instagram_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('QueryEncrypted').item.json.encrypted_value }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  recipient: {\n    id: $('Webhook').item.json.body.entry[0].messaging[0].sender.id\n  },\n  message: {\n    text: $('AI Agent').item.json.output.reply\n  }\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1072,
+        -64
+      ],
+      "id": "64fa8aed-3e05-4d42-a32d-95e6ceecf1e7",
+      "name": "HTTPRespuesta"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE conversations\nSET status = 'human',\n    updated_at = now()\nWHERE company_id = $1\nAND instagram_user_id = $2;",
+        "options": {
+          "queryReplacement": "={{ $('QueryID').item.json.id }} \n{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        896,
+        80
+      ],
+      "id": "126f0c0b-22c3-4af0-8f2e-775bb2e32641",
+      "name": "SetConversationHuman",
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO conversations (\n    company_id,\n    instagram_user_id,\n    instagram_username,\n    status\n)\nVALUES (\n    $1,\n    $2,\n    $3,\n    'ai'\n)\nON CONFLICT (company_id, instagram_user_id)\nDO UPDATE\nSET instagram_username = EXCLUDED.instagram_username;",
+        "options": {
+          "queryReplacement": "={{ $('QueryID').item.json.id }}\n{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }}\n{{ $('HTTPInstagramInfo').item.json.username }}\n"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -384,
+        64
+      ],
+      "id": "b98170ab-d0fb-4122-9a79-3aeda0f120e4",
+      "name": "FirstConversationInsert",
+      "credentials": {
+        "postgres": {
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? {};\nconst message = body?.entry?.[0]?.messaging?.[0];\nif (body.object !== 'instagram') return [];\nif (!message?.message?.text) return [];\nif (message.message.is_echo) return [];\nreturn [{ json: $json }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -500,
+        -80
+      ],
+      "id": "b7f0c2a4-3d1e-4f5a-9c6b-2e8d7a1f0c3e",
+      "name": "Filter Event"
+    }
+  ],
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTPRespuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SetConversationHuman",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QueryID": {
+      "main": [
+        [
+          {
+            "node": "QueryEncrypted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "QueryEncrypted": {
+      "main": [
+        [
+          {
+            "node": "HTTPInstagramInfo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AiHumanQuery": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TelegramIA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTPInstagramInfo": {
+      "main": [
+        [
+          {
+            "node": "FirstConversationInsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTPMensajeEspera": {
+      "main": [
+        [
+          {
+            "node": "TelegramIA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SetConversationHuman": {
+      "main": [
+        [
+          {
+            "node": "HTTPMensajeEspera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FirstConversationInsert": {
+      "main": [
+        [
+          {
+            "node": "AiHumanQuery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Event": {
+      "main": [
+        [
+          {
+            "node": "QueryID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}

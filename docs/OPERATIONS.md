@@ -1,0 +1,119 @@
+# Operations
+
+## Backup architecture
+
+```text
+PostgreSQL dump ─┐
+Demo documents  ─┼──> staging directory ──> Restic ──> Backblaze B2
+n8n state       ─┘
+```
+
+`scripts/backup.sh` performs:
+
+1. `pg_dump` against the running PostgreSQL container.
+2. `rsync` of `examples/` (the knowledge base).
+3. A copy of the n8n volume, stopping n8n first by default to avoid a
+   half-written SQLite file.
+4. `restic backup`.
+5. `restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 12 --prune`.
+6. Cleanup of staging files older than seven days.
+
+## Credentials
+
+Create `~/.config/winery-assistant/backup.env` with permissions `600`:
+
+```bash
+export RESTIC_REPOSITORY="b2:<bucket>:/restic"
+export RESTIC_PASSWORD="..."
+export B2_ACCOUNT_ID="..."
+export B2_ACCOUNT_KEY="..."
+```
+
+The script sources this file. It never reads secrets from the repository.
+
+## Running a backup
+
+```bash
+./scripts/backup.sh
+```
+
+Useful overrides:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `BACKUP_DIR` | `~/backups/winery-assistant` | Local staging directory |
+| `BACKUP_ENV_FILE` | `~/.config/winery-assistant/backup.env` | Credentials file |
+| `BACKUP_STOP_N8N` | `true` | Stop n8n before copying SQLite |
+| `BACKUP_STAGING_RETENTION_DAYS` | `7` | Delete old staging files |
+
+## Restore
+
+1. Stop the stack:
+
+   ```bash
+   docker compose down
+   ```
+
+2. Restore the Restic snapshot into a temporary directory:
+
+   ```bash
+   restic restore latest --target /tmp/restore
+   ```
+
+3. Restore PostgreSQL:
+
+   ```bash
+   docker compose up -d postgres
+   docker compose exec -T postgres psql -U "$POSTGRES_USER" "$POSTGRES_DB" \
+     < /tmp/restore/postgres.sql
+   ```
+
+4. Restore n8n state:
+
+   ```bash
+   docker compose up -d n8n
+   docker compose cp /tmp/restore/n8n/. n8n:/home/node/.n8n/
+   docker compose restart n8n
+   ```
+
+5. Rebuild Qdrant from the documents:
+
+   ```bash
+   python scripts/rag_ingest.py --source examples/demo --recreate
+   ```
+
+   Qdrant embeddings are derived data; rebuilding them is safer than restoring a
+   stale vector snapshot.
+
+6. Verify:
+
+   - n8n loads the workflows.
+   - Credentials decrypt (the encryption key must match).
+   - A test query returns a grounded answer.
+   - A test conversation changes state correctly.
+
+## Monitoring
+
+- `docker compose ps` shows container health.
+- `docker compose logs -f --tail=100` follows logs.
+- n8n exposes `/healthz`.
+- Add an external uptime check for the public webhook and the n8n editor.
+- Alert on failed backups and on Instagram token expiry.
+
+## Upgrades
+
+1. Read the release notes for n8n, Qdrant and PostgreSQL.
+2. Change one image tag at a time in `docker-compose.yml`.
+3. Run `docker compose pull` and `docker compose up -d`.
+4. Re-run the smoke test.
+5. Keep the previous tag available for rollback.
+
+Do not use `latest` in production. The Compose file pins versions on purpose.
+
+## Incident response
+
+1. Rotate the affected credential.
+2. Revoke the Meta or Telegram token at the provider.
+3. Check n8n execution history for leaked headers.
+4. Restore from the last known-good backup if data was modified.
+5. Document the incident and the rotation in the repository's security notes.

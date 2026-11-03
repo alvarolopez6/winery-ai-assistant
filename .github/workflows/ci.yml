@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      N8N_ENCRYPTION_KEY: ci-only-key-not-a-secret
+      POSTGRES_PASSWORD: ci-only-password-not-a-secret
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: ruff check scripts tests
+
+      - name: Test
+        run: pytest -q
+
+      - name: Validate JSON
+        run: jq empty workflows/*.json
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Shellcheck
+        run: shellcheck scripts/*.sh
+
+      - name: Validate Compose file
+        run: docker compose config -q
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
