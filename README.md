@@ -26,6 +26,7 @@ This project explores a middle ground:
 ## What it does
 
 - Receives Instagram DMs through the Meta Graph API webhook.
+- Verifies Meta's GET challenge and `X-Hub-Signature-256` in a small gateway before forwarding to n8n.
 - Resolves the tenant from the Instagram account ID.
 - Retrieves relevant chunks from a per-company Qdrant collection.
 - Generates a structured answer with Gemini.
@@ -42,7 +43,8 @@ This project explores a middle ground:
 flowchart LR
     C[Customer] --> IG[Instagram DM]
     IG --> META[Meta Graph API]
-    META --> N8N[n8n webhook]
+    META --> GW[Gateway]
+    GW --> N8N[n8n]
     N8N --> PG[(PostgreSQL)]
     N8N --> Q[(Qdrant)]
     N8N --> LLM[Gemini]
@@ -56,6 +58,7 @@ Request flow:
 sequenceDiagram
     participant C as Customer
     participant M as Meta Graph API
+    participant G as Gateway
     participant N as n8n
     participant P as PostgreSQL
     participant Q as Qdrant
@@ -63,7 +66,9 @@ sequenceDiagram
     participant T as Telegram
 
     C->>M: Instagram DM
-    M->>N: POST /webhook/instagram
+    M->>G: POST /webhook/instagram
+    G->>G: verify X-Hub-Signature-256
+    G->>N: forward valid POST
     N->>P: Resolve company + conversation state
     alt conversation is in human mode
         N->>T: Notify operator
@@ -85,6 +90,7 @@ sequenceDiagram
 
 | Layer | Technology |
 |---|---|
+| Public edge | FastAPI gateway + HMAC verification |
 | Orchestration | n8n 3.1 |
 | LLM | Google Gemini |
 | Embeddings | `gemini-embedding-001` |
@@ -122,10 +128,11 @@ Edit `.env`:
 docker compose up -d
 ```
 
-This starts n8n, Qdrant and PostgreSQL. PostgreSQL runs
+This starts n8n, Qdrant, PostgreSQL and the gateway. PostgreSQL runs
 `sql/init/001_schema.sql` and `sql/init/002_seed_demo.sql` on first boot.
 
-n8n is available at <http://localhost:5678>. Qdrant is bound to
+n8n is available at <http://localhost:5678>. The gateway is available at
+<http://localhost:8080> and is the only public entry point. Qdrant is bound to
 `127.0.0.1:6333` for the local demo. PostgreSQL is not published to the host.
 
 ### 3. Run the local RAG demo
@@ -154,16 +161,16 @@ make ask Q="¿Qué vino recomiendas para una barbacoa?"
    Google Gemini and Telegram.
 2. Import `workflows/main.json` and `workflows/telegram-admin.json`.
 3. Update the PostgreSQL and Qdrant credentials in each node.
-4. Set the Instagram webhook callback to your public n8n URL:
-   `https://<your-host>/webhook/instagram`.
+4. Set the Instagram webhook callback to your public gateway URL:
+   `https://<your-host>/webhook/instagram`. The gateway forwards to n8n.
 5. Add a Telegram chat ID to the demo company before using the admin workflow.
 
 The workflows are exported without credential IDs, webhook IDs or execution
 data. They will never contain real tokens.
 
-> **Production warning:** the exported workflow does not verify Meta's
-> `X-Hub-Signature-256` header. Do not expose the webhook to the internet until
-> you add signature verification or put it behind a trusted gateway. See
+> **Production warning:** keep the gateway as the only public entry point.
+> The n8n workflow itself does not verify signatures; the gateway rejects
+> invalid requests before forwarding. Do not expose n8n directly. See
 > [`docs/SECURITY.md`](docs/SECURITY.md).
 
 ## Configuration
@@ -176,12 +183,13 @@ data. They will never contain real tokens.
 | `N8N_ENCRYPTION_KEY` | yes | Encrypts n8n credentials at rest |
 | `N8N_HOST` | no | Public n8n hostname |
 | `N8N_PROTOCOL` | no | `http` locally, `https` in production |
-| `N8N_WEBHOOK_URL` | no | Public base URL for webhooks |
+| `PUBLIC_BASE_URL` | gateway | Public URL of the gateway, e.g. the Cloudflare Tunnel URL |
+| `FORWARD_TIMEOUT` | no | Gateway upstream timeout in seconds |
 | `N8N_SECURE_COOKIE` | no | Set to `true` behind HTTPS |
 | `QDRANT_API_KEY` | no | Required only if Qdrant is exposed |
 | `GEMINI_API_KEY` | demo | Gemini API key for the local scripts |
-| `INSTAGRAM_APP_SECRET` | production | Meta app secret for signature checks |
-| `INSTAGRAM_VERIFY_TOKEN` | production | Meta webhook verification token |
+| `INSTAGRAM_APP_SECRET` | gateway | Meta app secret for HMAC verification |
+| `INSTAGRAM_VERIFY_TOKEN` | gateway | Meta webhook verification token |
 
 ## Demo
 
@@ -210,6 +218,7 @@ same one used by the n8n workflow.
 .
 ├── docker-compose.yml
 ├── examples/demo/          # Fictional knowledge base
+├── gateway/                # Public webhook gateway (FastAPI)
 ├── scripts/
 │   ├── rag_ingest.py       # Local ingestion into Qdrant
 │   ├── rag_query.py        # Local RAG query CLI
@@ -239,22 +248,24 @@ handoff state machine safe when Meta retries a webhook.
 
 ```bash
 pip install -r requirements-dev.txt
-ruff check scripts tests
+ruff check scripts tests gateway
 pytest -q
 docker compose config -q
 python scripts/sanitize_workflow.py --check workflows/main.json workflows/telegram-admin.json
 ```
 
 CI runs the same checks, validates the workflow JSON, runs ShellCheck and scans
-the repository with Gitleaks.
+the repository with Gitleaks. Gateway tests cover the GET challenge and the
+HMAC rejection path.
 
 ## Security and privacy
 
 - No real credentials, tokens or customer conversations are committed.
 - `.env` is ignored; `.env.example` contains placeholders only.
+- The gateway is the only public entry point; it verifies the verify token and
+  the HMAC signature before forwarding to n8n.
 - Qdrant and PostgreSQL are not published to the host by default.
-- n8n binds to `127.0.0.1`; put it behind a reverse proxy with TLS and
-  authentication before exposing it.
+- n8n binds to `127.0.0.1`; do not expose the editor.
 - Execution data is pruned and not saved on success, reducing the chance of
   leaking tokens in n8n history.
 - The production checklist is in [`docs/SECURITY.md`](docs/SECURITY.md).
@@ -268,7 +279,9 @@ and data-processing agreements with Meta, Google and Telegram. See
 
 | Capability | Status |
 |---|---|
-| Instagram DM webhook → n8n | Implemented |
+| Instagram DM webhook → gateway → n8n | Implemented |
+| Meta GET verification | Implemented in gateway |
+| `X-Hub-Signature-256` verification | Implemented in gateway |
 | Tenant resolution by Instagram account | Implemented |
 | Per-tenant RAG with Qdrant | Implemented |
 | Human handoff state machine | Implemented |

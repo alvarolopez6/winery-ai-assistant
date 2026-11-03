@@ -11,6 +11,8 @@ jobs:
     env:
       N8N_ENCRYPTION_KEY: ci-only-key-not-a-secret
       POSTGRES_PASSWORD: ci-only-password-not-a-secret
+      INSTAGRAM_APP_SECRET: ci-only-app-secret
+      INSTAGRAM_VERIFY_TOKEN: ci-only-verify-token
     steps:
       - uses: actions/checkout@v4
 

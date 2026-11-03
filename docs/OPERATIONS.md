@@ -96,8 +96,9 @@ Useful overrides:
 
 - `docker compose ps` shows container health.
 - `docker compose logs -f --tail=100` follows logs.
-- n8n exposes `/healthz`.
-- Add an external uptime check for the public webhook and the n8n editor.
+- The gateway exposes `/healthz`; it returns 503 when the app secret or verify token is missing.
+- n8n exposes `/healthz` on the private network.
+- Add an external uptime check for the public gateway URL.
 - Alert on failed backups and on Instagram token expiry.
 
 ## Upgrades

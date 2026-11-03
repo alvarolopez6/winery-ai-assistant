@@ -65,3 +65,18 @@ also provide a small, testable code path.
 
 **Consequences:** the README and roadmap are honest. Reservations are a future
 integration, not a hidden feature.
+
+## ADR-008: public gateway outside n8n
+
+**Context:** Meta needs a GET challenge and HMAC signature verification. Doing
+both inside n8n would require exposing environment variables to nodes or
+storing the verify token in workflow JSON, and n8n would have to be the public
+service.
+
+**Decision:** put a small FastAPI gateway in front of n8n. The gateway handles
+GET verification and `X-Hub-Signature-256`, then forwards valid POSTs over the
+private Docker network.
+
+**Consequences:** n8n stays private, signature verification is testable in
+Python, and Cloudflare or a reverse proxy only needs to expose one small
+service. The cost is one more container and one more deployment artifact.

@@ -10,6 +10,7 @@ This guide covers the full deployment. For the local RAG demo, see the
 - A Gemini API key.
 - Optional: a Meta developer app with an Instagram business account.
 - Optional: a Telegram bot.
+- Optional: Cloudflare Tunnel for a public demo URL.
 
 ## 2. Environment
 
@@ -22,8 +23,10 @@ Edit `.env`:
 - `POSTGRES_PASSWORD`: use a strong password.
 - `N8N_ENCRYPTION_KEY`: generate with `openssl rand -hex 32`.
 - `GEMINI_API_KEY`: required for the local demo.
-- `N8N_HOST`, `N8N_PROTOCOL`, `N8N_WEBHOOK_URL`: set these to your public host
-  when you deploy behind HTTPS.
+- `N8N_HOST`, `N8N_PROTOCOL`: set these for the n8n editor when you deploy
+  behind HTTPS.
+- `PUBLIC_BASE_URL`: public URL of the gateway. Locally it is
+  `http://localhost:8080/`; with Cloudflare it is the tunnel URL.
 - `N8N_SECURE_COOKIE=true` when using HTTPS.
 - `INSTAGRAM_APP_SECRET` and `INSTAGRAM_VERIFY_TOKEN`: required for the Meta
   webhook.
@@ -41,8 +44,9 @@ PostgreSQL runs the files in `sql/init/` on first boot. If you change the
 schema, add a new migration instead of editing the existing one after a
 deployment.
 
-n8n is available at <http://localhost:5678>. Create the owner account on first
-access.
+n8n is available at <http://localhost:5678>. The gateway is available at
+<http://localhost:8080> and is the only public entry point. Create the n8n owner
+account on first access.
 
 ## 4. Import the workflows
 
@@ -93,19 +97,38 @@ typically returns 3072 dimensions.
 For a real tenant, replace `--source` with the tenant's document directory and
 `--collection` with the value stored in `companies.qdrant_collection`.
 
-## 7. Configure Meta
+## 7. Expose the gateway
+
+For a quick demo, start a Cloudflare quick tunnel against the gateway:
+
+```bash
+cloudflared tunnel --url http://localhost:8080
+```
+
+Copy the generated `https://...trycloudflare.com` URL into `PUBLIC_BASE_URL` in
+`.env` and restart n8n so its webhook display uses the public base:
+
+```bash
+docker compose up -d n8n
+```
+
+Quick tunnels are for demos only. For production, use a named Cloudflare Tunnel
+or a reverse proxy with a stable domain. Never point the tunnel at n8n itself.
+
+## 8. Configure Meta
 
 1. Create a Meta app with the Instagram Graph API product.
 2. Connect the Instagram business account.
 3. Add the webhook callback:
    `https://<your-host>/webhook/instagram`.
-4. Set the verify token to `INSTAGRAM_VERIFY_TOKEN`.
+4. Set the verify token to the same value as `INSTAGRAM_VERIFY_TOKEN`.
 5. Subscribe to the `messages` field.
 6. Copy the app secret into `INSTAGRAM_APP_SECRET`.
-7. Add signature verification before exposing the endpoint. See
+7. Keep the gateway as the only public endpoint. It validates the token and the
+   `X-Hub-Signature-256` header before forwarding to n8n. See
    [`SECURITY.md`](SECURITY.md).
 
-## 8. Configure Telegram
+## 9. Configure Telegram
 
 1. Create a bot with BotFather.
 2. Put the bot token in the n8n Telegram credential.
@@ -114,7 +137,7 @@ For a real tenant, replace `--source` with the tenant's document directory and
 4. Store that chat ID in `companies.telegram_chat_id`.
 5. Activate `telegram-admin.json`.
 
-## 9. Test
+## 10. Test
 
 - Send a DM to the Instagram account.
 - Confirm the reply in Instagram.
@@ -129,6 +152,7 @@ For a real tenant, replace `--source` with the tenant's document directory and
 |---|---|
 | n8n cannot reach PostgreSQL | Credential host must be `postgres`, not `localhost` |
 | Qdrant collection not found | Run the ingestion script and check `companies.qdrant_collection` |
-| Webhook returns 404 | The workflow must be active and the path must be `instagram` |
+| Webhook returns 404 | The n8n workflow must be active and the path must be `instagram` |
+| Meta verification fails | Gateway not running, or `PUBLIC_BASE_URL` does not match the tunnel |
 | Instagram token rejected | Token expired or the app lacks the required permission |
 | Telegram alert not sent | `telegram_chat_id` is wrong or the bot was not started |

@@ -10,7 +10,7 @@ services:
       - N8N_HOST=${N8N_HOST:-localhost}
       - N8N_PORT=5678
       - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
-      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      - N8N_WEBHOOK_URL=${PUBLIC_BASE_URL:-http://localhost:8080/}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
       - N8N_SECURE_COOKIE=${N8N_SECURE_COOKIE:-false}
       - N8N_RESTRICT_FILE_ACCESS_TO=/files
@@ -41,6 +41,33 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  gateway:
+    build:
+      context: ./gateway
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - INSTAGRAM_APP_SECRET=${INSTAGRAM_APP_SECRET:?set INSTAGRAM_APP_SECRET in .env}
+      - INSTAGRAM_VERIFY_TOKEN=${INSTAGRAM_VERIFY_TOKEN:?set INSTAGRAM_VERIFY_TOKEN in .env}
+      - N8N_INTERNAL_WEBHOOK_URL=http://n8n:5678/webhook/instagram
+      - FORWARD_TIMEOUT=${FORWARD_TIMEOUT:-30}
+    depends_on:
+      n8n:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   qdrant:
     image: qdrant/qdrant:v1.20.0

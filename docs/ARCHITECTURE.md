@@ -20,7 +20,8 @@
 | Component | Responsibility |
 |---|---|
 | Meta Graph API | Receives DMs and sends replies |
-| n8n | Webhook, orchestration, retries and credentials |
+| Gateway | Public entry point: GET challenge + HMAC signature verification |
+| n8n | Orchestration, retries and credentials |
 | PostgreSQL | Tenants, conversation state and encrypted provider tokens |
 | Qdrant | Per-tenant document embeddings |
 | Gemini | Embeddings and answer generation |
@@ -29,19 +30,22 @@
 
 ## Request flow
 
-1. Meta sends a webhook to n8n.
-2. The webhook node validates the basic event shape and ignores echoes and
+1. Meta sends a webhook to the gateway.
+2. The gateway validates the verify token on GET, or the
+   `X-Hub-Signature-256` HMAC on POST.
+3. Valid requests are forwarded to n8n over the private Docker network.
+4. The n8n webhook validates the basic event shape and ignores echoes and
    non-text events.
-3. `QueryID` resolves the tenant by the Instagram recipient ID.
-4. `QueryEncrypted` loads the tenant's Instagram token.
-5. `HTTPInstagramInfo` fetches the customer's profile.
-6. `FirstConversationInsert` creates the conversation row if it does not exist.
-7. `AiHumanQuery` checks whether the conversation is in `ai` or `human` mode.
-8. In `ai` mode, the agent retrieves chunks from the tenant's Qdrant collection
-   and generates a structured answer.
-9. If `needs_human` is true, the conversation moves to `human`, the customer
-   receives a handoff message and Telegram notifies the operator.
-10. In `human` mode, the bot does not answer; it only notifies the operator.
+5. `QueryID` resolves the tenant by the Instagram recipient ID.
+6. `QueryEncrypted` loads the tenant's Instagram token.
+7. `HTTPInstagramInfo` fetches the customer's profile.
+8. `FirstConversationInsert` creates the conversation row if it does not exist.
+9. `AiHumanQuery` checks whether the conversation is in `ai` or `human` mode.
+10. In `ai` mode, the agent retrieves chunks from the tenant's Qdrant collection
+    and generates a structured answer.
+11. If `needs_human` is true, the conversation moves to `human`, the customer
+    receives a handoff message and Telegram notifies the operator.
+12. In `human` mode, the bot does not answer; it only notifies the operator.
 
 ## Multi-tenancy
 
@@ -148,11 +152,12 @@ is acceptable.
 
 ## Security boundaries
 
+- The gateway is the only public endpoint and validates Meta's signature.
 - The n8n editor is bound to `127.0.0.1` by default.
 - PostgreSQL and Qdrant are not published to the host.
 - Provider tokens are stored in the database and passed as headers at runtime.
 - Execution data is pruned and not saved on success.
 - The exported workflows contain no real credentials.
 
-The remaining production gap is Meta signature verification. See
+The signature verification lives in the gateway, not in n8n. See
 [`SECURITY.md`](SECURITY.md).

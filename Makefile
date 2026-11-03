@@ -2,7 +2,7 @@ SHELL := /bin/bash
 PYTHON ?= python3
 .DEFAULT_GOAL := help
 
-.PHONY: help env up down logs ps restart ingest ask test lint validate backup clean
+.PHONY: help env up down logs ps restart ingest ask test lint validate tunnel backup clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -41,6 +41,9 @@ lint: ## Run Ruff
 validate: ## Validate workflows and compose file
 	$(PYTHON) scripts/sanitize_workflow.py --check workflows/main.json workflows/telegram-admin.json
 	docker compose config -q
+
+tunnel: ## Start a Cloudflare quick tunnel for the gateway
+	cloudflared tunnel --url http://localhost:8080
 
 backup: ## Run the Restic backup
 	./scripts/backup.sh

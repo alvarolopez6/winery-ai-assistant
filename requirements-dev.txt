@@ -1,3 +1,4 @@
 -r requirements.txt
+-r gateway/requirements.txt
 pytest>=8,<9
 ruff>=0.8,<1

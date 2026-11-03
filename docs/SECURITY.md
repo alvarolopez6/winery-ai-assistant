@@ -18,24 +18,26 @@ Advisories on the repository, or contact the maintainer privately.
 
 ## Webhook security
 
-The exported n8n workflow validates the event shape but **does not verify
-Meta's `X-Hub-Signature-256` header**. This is a known limitation. Do not expose
-the webhook to the public internet until you add verification.
+The public entry point is the FastAPI gateway in `gateway/`. It implements:
 
-Required production controls:
+1. Meta's GET challenge using `INSTAGRAM_VERIFY_TOKEN`.
+2. Raw-body capture before JSON parsing.
+3. `HMAC-SHA256(app_secret, raw_body)` verification.
+4. Constant-time comparison against `X-Hub-Signature-256`.
+5. Rejection of requests with a missing or invalid signature.
+6. Forwarding of valid requests to n8n over the private Docker network.
 
-1. Capture the raw request body before JSON parsing.
-2. Compute `HMAC-SHA256(app_secret, raw_body)`.
-3. Compare it with `X-Hub-Signature-256` using a constant-time comparison.
-4. Reject requests with a missing or invalid signature.
-5. Verify `body.object == "instagram"`.
-6. Ignore `message.is_echo` events and non-text events.
-7. Deduplicate by message ID to avoid duplicate replies on Meta retries.
-8. Rate-limit the endpoint at the reverse proxy or WAF.
+The n8n workflow still validates the event shape and ignores echoes and
+non-text events, but it assumes the request already passed the gateway. **Do not
+expose n8n directly.** If you bypass the gateway, you lose signature
+verification.
 
-Additional hardening:
+Additional required controls:
 
-- Put n8n behind a reverse proxy with TLS.
+- Keep the gateway as the only public endpoint.
+- Put the gateway behind HTTPS (Cloudflare Tunnel or a reverse proxy).
+- Rate-limit the gateway at the edge.
+- Add message-ID deduplication in n8n to avoid duplicate replies on retries.
 - Require authentication for the n8n editor.
 - Do not expose PostgreSQL or Qdrant to the host or the internet.
 - If Qdrant must be reachable, set `QDRANT_API_KEY` and bind it to a private
@@ -90,8 +92,9 @@ history for debugging, restrict access to the database and encrypt backups.
 - [ ] Set a strong `POSTGRES_PASSWORD`.
 - [ ] Set `N8N_ENCRYPTION_KEY` and store it outside the repository.
 - [ ] Set `N8N_SECURE_COOKIE=true` and serve n8n over HTTPS.
-- [ ] Put n8n behind authentication.
-- [ ] Add Meta signature verification.
+- [ ] Keep the gateway as the only public endpoint.
+- [ ] Put n8n editor behind authentication.
+- [ ] Confirm the gateway rejects invalid signatures.
 - [ ] Add rate limiting.
 - [ ] Add message-ID deduplication.
 - [ ] Set `QDRANT_API_KEY` if Qdrant is reachable outside the Docker network.

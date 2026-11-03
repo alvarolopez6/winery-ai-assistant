@@ -2,7 +2,8 @@
 
 ## Main workflow
 
-`workflows/main.json` handles one Instagram DM at a time.
+`workflows/main.json` handles one Instagram DM at a time after the gateway has
+verified the request.
 
 | Node | Responsibility |
 |---|---|
@@ -53,8 +54,8 @@ The `IfAllowed` node drops messages from chat IDs that do not match a company.
 
 ## Known limitations
 
-- Meta signature verification is not included in the export. Add it before
-  public exposure.
+- Meta signature verification is handled by the gateway, not by these
+  workflows. Never expose n8n directly.
 - Only the first entry and the first message of a webhook are processed.
 - Meta retries can produce duplicate replies; add message-ID deduplication.
 - HTTP nodes have no retry policy.

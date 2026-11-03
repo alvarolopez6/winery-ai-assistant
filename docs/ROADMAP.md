@@ -2,7 +2,8 @@
 
 ## Implemented
 
-- Instagram DM webhook.
+- Instagram DM webhook through a public FastAPI gateway.
+- Meta GET verification and `X-Hub-Signature-256` validation.
 - Tenant resolution by Instagram account.
 - Per-tenant Qdrant retrieval.
 - Structured Gemini answers.
@@ -14,13 +15,13 @@
 
 ## Next
 
-1. **Meta signature verification** in the n8n workflow.
-2. **Message-ID deduplication** to make retries safe.
-3. **Retries and an error workflow** for HTTP nodes.
-4. **Persistent chat memory** in PostgreSQL.
-5. **RAG evaluation set** with retrieval and answer quality metrics.
-6. **Token expiry alerts** for Instagram credentials.
-7. **Observability**: structured logs, failed-message queue, backup alerts.
+1. **Message-ID deduplication** to make retries safe.
+2. **Retries and an error workflow** for HTTP nodes.
+3. **Persistent chat memory** in PostgreSQL.
+4. **RAG evaluation set** with retrieval and answer quality metrics.
+5. **Token expiry alerts** for Instagram credentials.
+6. **Observability**: structured logs, failed-message queue, backup alerts.
+7. **Named Cloudflare Tunnel** for a stable demo URL.
 
 ## Later
 
