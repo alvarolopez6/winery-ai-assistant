@@ -198,6 +198,22 @@ data. They will never contain real tokens.
 
 ## Demo
 
+### Instagram conversation
+
+<img src="docs/images/instagram-demo.gif" alt="Instagram demo: a customer asks about the wines and the assistant answers from the fictional catalogue" width="760">
+
+*Fictional demo data. Profile names are blurred. The assistant answers from the
+tenant knowledge base and escalates a wholesale enquiry to a human operator.*
+
+### Telegram operator workflow
+
+| Handoff alert | Tenant statistics |
+|---|---|
+| <img src="docs/images/telegram-handoff.png" alt="Telegram alert showing a pending customer enquiry" width="420"> | <img src="docs/images/telegram-stats.png" alt="Telegram statistics for the tenant" width="420"> |
+| When the question falls outside the knowledge base, the assistant creates a handoff and notifies the operator. | `/stats` shows the current AI/human split for the operator's company. |
+
+### Local RAG demo
+
 Real output from the local demo:
 
 ```text
@@ -223,6 +239,7 @@ DeepSeek for the final answer.
 ```text
 .
 ├── docker-compose.yml
+├── docs/images/            # Demo screenshots and GIF
 ├── examples/demo/          # Fictional knowledge base
 ├── gateway/                # Public webhook gateway (FastAPI)
 ├── scripts/
