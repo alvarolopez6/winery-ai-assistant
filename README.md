@@ -7,7 +7,7 @@ confident.
 > **Demo data is fictional.** The winery, wines, prices and schedules in
 > `examples/demo/` are invented for demonstration purposes.
 
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg) [![CI](https://github.com/alvarolopez6/winery-ai-assistant/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alvarolopez6/winery-ai-assistant/actions/workflows/ci.yml)
 
 ## Why this exists
 
@@ -290,9 +290,11 @@ docker compose config -q
 python scripts/sanitize_workflow.py --check workflows/main.json workflows/telegram-admin.json
 ```
 
-CI runs the same checks, validates the workflow JSON, runs ShellCheck and scans
-the repository with Gitleaks. Gateway tests cover the GET challenge and the
-HMAC rejection path.
+CI runs the same checks on a pinned `ubuntu-24.04` runner, validates the workflow
+JSON, runs ShellCheck and scans the repository with Gitleaks. The Docker images
+and the CI runner are pinned; Python dependencies use bounded ranges and do not
+have a lockfile yet. Gateway tests cover the GET challenge and the HMAC
+rejection path.
 
 ## Security and privacy
 
