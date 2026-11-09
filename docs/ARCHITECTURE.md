@@ -27,6 +27,7 @@
 | DeepSeek | Answer generation |
 | Gemini | Embeddings |
 | Telegram | Operator notifications and commands |
+| Backblaze B2 | Off-site cloud repository for encrypted Restic backups |
 | Python demo | Local ingestion and query path without Meta |
 
 ## Request flow

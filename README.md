@@ -36,7 +36,8 @@ This project explores a middle ground:
 - Lets an operator switch a conversation with `/ai`, `/human`, `/stats` and
   `/help`.
 - Includes a local RAG demo that does **not** require a Meta developer account.
-- Includes a Restic backup and restore runbook.
+- Backs up PostgreSQL, n8n state and the knowledge base to **Backblaze B2
+  cloud storage** with encrypted Restic snapshots, plus a restore runbook.
 
 ## Architecture
 
@@ -88,6 +89,16 @@ sequenceDiagram
     end
 ```
 
+## Backups
+
+The durable copy lives in the cloud: PostgreSQL, the n8n state and the
+knowledge base are staged locally, encrypted by Restic and uploaded to a
+**Backblaze B2** bucket through Restic's native B2 backend. Retention keeps
+7 daily, 4 weekly and 12 monthly snapshots. The local staging directory is
+temporary; the off-site copy is in Backblaze B2.
+
+See [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for the runbook and restore steps.
+
 ## Tech stack
 
 | Layer | Technology |
@@ -100,7 +111,7 @@ sequenceDiagram
 | Database | PostgreSQL 16 |
 | Messaging | Meta Graph API (Instagram) |
 | Human handoff | Telegram Bot API |
-| Backups | Restic + Backblaze B2 (optional) |
+| Backups | Restic → Backblaze B2 (cloud object storage) |
 | Local demo | Python 3.11+ |
 
 ## Quickstart

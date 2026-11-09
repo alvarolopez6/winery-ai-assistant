@@ -88,6 +88,8 @@ history for debugging, restrict access to the database and encrypt backups.
 ## Backups
 
 - Restic encrypts the repository; the Restic password is mandatory.
+- The repository is stored off-site in a **Backblaze B2** bucket, so the
+  encrypted backups survive the loss of the host.
 - The staging directory contains a plaintext PostgreSQL dump and a copy of the
   n8n state. Restrict its permissions and delete old staging files.
 - Back up the n8n encryption key separately. A backup of the database without

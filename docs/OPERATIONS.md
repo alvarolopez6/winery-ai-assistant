@@ -2,11 +2,18 @@
 
 ## Backup architecture
 
+Backups are **off-site in the cloud**, not only on the machine that runs the
+stack:
+
 ```text
 PostgreSQL dump ─┐
-Demo documents  ─┼──> staging directory ──> Restic ──> Backblaze B2
+Demo documents  ─┼──> staging directory ──> Restic ──> Backblaze B2 (cloud)
 n8n state       ─┘
 ```
+
+The Restic repository is a Backblaze B2 bucket, accessed through Restic's
+native B2 backend. The staging directory is local and temporary; the durable
+copy is the encrypted one in the cloud.
 
 `scripts/backup.sh` performs:
 
