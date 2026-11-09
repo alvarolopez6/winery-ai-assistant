@@ -55,39 +55,24 @@ flowchart LR
     TG -->|webhook| GW
 ```
 
-Request flow:
+How a DM is handled:
 
-```mermaid
-sequenceDiagram
-    participant C as Customer
-    participant M as Meta Graph API
-    participant G as Gateway
-    participant N as n8n
-    participant P as PostgreSQL
-    participant Q as Qdrant
-    participant L as DeepSeek
-    participant T as Telegram
+1. Meta sends `POST /webhook/instagram` to the gateway.
+2. The gateway verifies `X-Hub-Signature-256`; an invalid signature gets `403`
+   and is never forwarded.
+3. n8n resolves the tenant from the Instagram account ID and loads its token.
+4. n8n checks the conversation state in PostgreSQL.
+5. In `ai` mode, the agent retrieves chunks from the tenant's Qdrant collection
+   and asks DeepSeek for a structured answer.
+6. The output parser returns `reply` and `needs_human`.
+7. If `needs_human` is true, the conversation moves to `human`, the customer
+   receives a handoff message and Telegram alerts the operator.
+8. Otherwise the reply is sent back to Instagram, truncated to 900 characters.
 
-    C->>M: Instagram DM
-    M->>G: POST /webhook/instagram
-    G->>G: verify X-Hub-Signature-256
-    G->>N: forward valid POST
-    N->>P: Resolve company + conversation state
-    alt conversation is in human mode
-        N->>T: Notify operator
-    else conversation is in AI mode
-        N->>Q: Retrieve tenant documents
-        Q-->>N: Relevant chunks
-        N->>L: Answer with context
-        alt needs_human = true
-            N->>P: status = human
-            N->>M: Send handoff message
-            N->>T: Alert operator
-        else needs_human = false
-            N->>M: Send answer
-        end
-    end
-```
+| Conversation state | Behaviour |
+|---|---|
+| `ai` | The assistant answers from the tenant knowledge base |
+| `human` | The assistant stays silent and Telegram notifies the operator |
 
 ## Backups
 
