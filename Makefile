@@ -36,7 +36,7 @@ test: ## Run the test suite
 	pytest -q
 
 lint: ## Run Ruff
-	ruff check scripts tests
+	ruff check scripts tests gateway
 
 validate: ## Validate workflows and compose file
 	$(PYTHON) scripts/sanitize_workflow.py --check workflows/main.json workflows/telegram-admin.json

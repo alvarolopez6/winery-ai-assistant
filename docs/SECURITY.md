@@ -16,6 +16,12 @@ Advisories on the repository, or contact the maintainer privately.
   committed by mistake.
 - Do not paste secrets into issues, pull requests or screenshots.
 
+**Known limitation:** the `credentials.encrypted_value` column stores provider
+tokens in plaintext despite its name. `N8N_ENCRYPTION_KEY` protects n8n's own
+credential store, not this table. Until the column is encrypted (pgcrypto or an
+external secret manager), anyone with read access to PostgreSQL or its backups
+can read the tokens.
+
 ## Webhook security
 
 The public entry point is the FastAPI gateway in `gateway/`. It implements:
@@ -91,6 +97,7 @@ history for debugging, restrict access to the database and encrypt backups.
 ## Production checklist
 
 - [ ] Rotate every credential that was ever stored in plaintext.
+- [ ] Encrypt `credentials.encrypted_value` or move tokens to a secret manager.
 - [ ] Set a strong `POSTGRES_PASSWORD`.
 - [ ] Set `N8N_ENCRYPTION_KEY` and store it outside the repository.
 - [ ] Set `N8N_SECURE_COOKIE=true` and serve n8n over HTTPS.

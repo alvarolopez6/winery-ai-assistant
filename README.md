@@ -124,6 +124,8 @@ Edit `.env`:
 - Set `POSTGRES_PASSWORD`.
 - Generate `N8N_ENCRYPTION_KEY` with `openssl rand -hex 32`.
 - Set `GEMINI_API_KEY` (embeddings) and `DEEPSEEK_API_KEY` (chat).
+- Set `INSTAGRAM_APP_SECRET` and `INSTAGRAM_VERIFY_TOKEN`. Compose requires
+  both; use placeholder values if you are not connecting Meta yet.
 
 ### 2. Start the infrastructure
 
