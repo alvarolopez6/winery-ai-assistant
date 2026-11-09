@@ -53,6 +53,19 @@ Useful overrides:
 | `BACKUP_STOP_N8N` | `true` | Stop n8n before copying SQLite |
 | `BACKUP_STAGING_RETENTION_DAYS` | `7` | Delete old staging files |
 
+## Automation
+
+`scripts/backup.sh` is currently run **manually**. Automatic scheduling is a
+pending item for a simple reason: the demo runs on a local machine that is not
+powered on permanently. A cron job or systemd timer on that machine would fire
+only while it is awake, so a missed window would look identical to a healthy
+backup unless it alerted.
+
+Automating backups makes sense once the stack moves to an always-on host (VPS,
+a home server left running, or a scheduled CI job with B2 credentials). The
+automation should include a dead-man's-switch alert when no snapshot arrives
+within the expected window. Tracked in [`ROADMAP.md`](ROADMAP.md).
+
 ## Restore
 
 1. Stop the stack:

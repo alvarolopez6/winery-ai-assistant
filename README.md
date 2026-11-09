@@ -325,6 +325,7 @@ and data-processing agreements with Meta, Google and Telegram. See
 | Telegram operator commands | Implemented |
 | Local RAG demo without Meta | Implemented |
 | Restic backup and restore runbook | Implemented |
+| Automatic scheduled backups | Not implemented (host is not always on) |
 | Google Calendar reservations | Not implemented |
 | Cancellation / modification flows | Not implemented |
 | Daily summary | Not implemented |
