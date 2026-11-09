@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-03T15:36:29.924Z",
+  "updatedAt": "2026-11-03T15:47:05.691Z",
   "createdAt": "2026-11-03T12:09:29.428Z",
   "name": "Winery AI Assistant — Instagram",
   "description": null,
@@ -12,7 +12,7 @@
         "text": "={{ $('Webhook').item.json.body.entry[0].messaging[0].message.text }}",
         "hasOutputParser": true,
         "options": {
-          "systemMessage": "Eres el asistente virtual de una bodega.\n\nTienes una herramienta de búsqueda documental.\n\nPara cualquier pregunta sobre la bodega debes usar la herramienta antes de responder.\n\nNo respondas usando conocimientos generales.\n\nSi la herramienta no devuelve información, indica que no tienes ese dato.\n\nSiempre responde usando el formato definido por el Output Parser.\n\nneeds_human=true cuando:\n\n- el usuario pide hablar con una persona;\n- no encuentras la información en la base documental;\n- existe una queja;\n- existe una reclamación;\n- existe un problema con un pedido;\n- es alguna propuesta personalizada;\n- no estás seguro de la respuesta.\n\nEn cualquier otro caso:\n\nneeds_human=false."
+          "systemMessage": "Eres el asistente virtual de una bodega.\n\nTienes una herramienta de búsqueda documental.\n\nPara cualquier pregunta sobre la bodega debes usar la herramienta antes de responder.\n\nNo respondas usando conocimientos generales.\n\nSi la herramienta no devuelve información, indica que no tienes ese dato.\n\nLa respuesta nunca debe exceder los 800 caracteres.\n\nSiempre responde usando el formato definido por el Output Parser.\n\nneeds_human=true cuando:\n\n- el usuario pide hablar con una persona;\n- no encuentras la información en la base documental;\n- existe una queja;\n- existe una reclamación;\n- existe un problema con un pedido;\n- es alguna propuesta personalizada;\n- no estás seguro de la respuesta.\n\nEn cualquier otro caso:\n\nneeds_human=false."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -349,7 +349,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n{\n  recipient: {\n    id: $('Webhook').item.json.body.entry[0].messaging[0].sender.id\n  },\n  message: {\n    text: $json.output.reply\n  }\n}\n  }}",
+        "jsonBody": "={{\n{\n  recipient: {\n    id: $('Webhook').item.json.body.entry[0].messaging[0].sender.id\n  },\n  message: {\n    text: String($json.output.reply).slice(0, 900)\n  }\n}\n  }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -648,7 +648,7 @@
   "nodeGroups": [],
   "tags": [],
   "versionMetadata": {
-    "name": "Version 5bf7cd59",
+    "name": "Version 004232e0",
     "description": ""
   }
 }
